@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Eastbrook Vale</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>⚔️</text></svg>" />
+<style>
+  :root {
+    --gold: #ffd100;
+    --gold-dim: #c8a838;
+    --border: #6f5a2a;
+    --panel-bg: linear-gradient(170deg, #15151fF2 0%, #0b0b12F2 60%, #08080dF2 100%);
+    --title-font: 'Palatino Linotype', Palatino, Georgia, serif;
+    --ui-font: 'Arial', 'Helvetica', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: var(--ui-font); }
+  #game-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  #nameplates { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  #ui { position: absolute; inset: 0; pointer-events: none; }
+  #ui > * { pointer-events: auto; }
+
+  .panel {
+    background: var(--panel-bg);
+    border: 2px solid var(--border);
+    outline: 1px solid #000;
+    border-radius: 6px;
+    box-shadow: 0 2px 16px #000c, inset 0 0 24px #0006, inset 0 1px 0 #ffffff14;
+    color: #e8d8a8;
+  }
+  .panel-title {
+    font-family: var(--title-font);
+    color: var(--gold);
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    text-shadow: 1px 1px 2px #000;
+    border-bottom: 1px solid #463a1c;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .x-btn { color: #c9b27a; cursor: pointer; font-size: 14px; padding: 0 4px; border: 1px solid #463a1c; border-radius: 3px; background: #1a1410; }
+  .x-btn:hover { color: #fff; border-color: var(--gold-dim); }
+  .gold { color: var(--gold); }
+
+  /* ---------- nameplates ---------- */
+  .nameplate { position: absolute; left: 0; top: 0; text-align: center; pointer-events: none;
+    text-shadow: 1px 1px 2px #000; white-space: nowrap; will-change: transform; }
+  .np-name { font-size: 12px; font-weight: bold; font-family: var(--title-font); letter-spacing: 0.3px; }
+  .np-hpbar { width: 78px; height: 6px; background: #2a0000; border: 1px solid #000; margin: 1px auto 0; border-radius: 2px; }
+  .np-hpfill { height: 100%; background: linear-gradient(#48e060, #1d7a32); border-radius: 2px; }
+  .np-marker { font-size: 24px; font-weight: bold; height: 26px; font-family: var(--title-font); }
+  .np-marker.avail { color: var(--gold); text-shadow: 0 0 6px #ffd10088, 1px 1px 2px #000; }
+  .np-marker.ready { color: var(--gold); text-shadow: 0 0 6px #ffd10088, 1px 1px 2px #000; }
+  .np-marker.active { color: #b9b9b9; }
+  .np-marker.loot { color: var(--gold); font-size: 14px; }
+
+  /* ---------- unit frames ---------- */
+  .unitframe { position: absolute; top: 12px; display: flex; gap: 0; align-items: center; }
+  #player-frame { left: 12px; }
+  #target-frame { left: 320px; display: none; }
+  .portrait-wrap { position: relative; width: 64px; height: 64px; z-index: 2; }
+  .portrait {
+    width: 60px; height: 60px; border-radius: 50%;
+    border: 3px solid var(--border); outline: 1px solid #000;
+    background: radial-gradient(circle at 35% 30%, #3a3a4e, #14141c);
+    box-shadow: 0 2px 8px #000c, inset 0 0 12px #0009;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .portrait canvas { border-radius: 50%; }
+  .level-chip {
+    position: absolute; bottom: -3px; left: -3px; width: 24px; height: 24px;
+    background: radial-gradient(circle at 40% 35%, #4a3a14, #241c08);
+    border: 2px solid var(--gold-dim); border-radius: 50%;
+    color: var(--gold); font-size: 12px; font-weight: bold;
+    display: flex; align-items: center; justify-content: center;
+    text-shadow: 1px 1px 1px #000; z-index: 3;
+  }
+  .uf-bars { width: 190px; margin-left: -8px; padding: 5px 8px 5px 14px;
+    background: var(--panel-bg); border: 2px solid var(--border); outline: 1px solid #000;
+    border-radius: 0 6px 6px 0; box-shadow: 0 2px 10px #000a; }
+  #target-frame .portrait-wrap { order: 2; }
+  #target-frame .uf-bars { order: 1; margin-left: 0; margin-right: -8px; border-radius: 6px 0 0 6px; padding: 5px 14px 5px 8px; }
+  #target-frame .level-chip { left: auto; right: -3px; }
+  .uf-name { font-size: 13px; font-weight: bold; font-family: var(--title-font); color: var(--gold);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 1px 1px 2px #000; }
+  .bar { position: relative; height: 15px; background: #1a1a1a; border: 1px solid #000; margin-top: 3px; border-radius: 2px; overflow: hidden; }
+  .bar-fill { position: absolute; inset: 0; width: 100%; transform-origin: left;
+    background-image: linear-gradient(rgba(255,255,255,0.25), rgba(255,255,255,0.02) 45%, rgba(0,0,0,0.15)); }
+  .bar-text { position: absolute; inset: 0; text-align: center; font-size: 10px; line-height: 15px; color: #fff; text-shadow: 1px 1px 1px #000; font-weight: bold; }
+  .hp .bar-fill { background-color: #1eb838; }
+  .mana .bar-fill { background-color: #2b7bd4; }
+  .rage .bar-fill { background-color: #c0392b; }
+  .energy .bar-fill { background-color: #e4c531; }
+  .combo-row { display: flex; gap: 4px; margin-top: 4px; height: 10px; }
+  .combo-pip { width: 12px; height: 10px; border-radius: 50%; border: 1px solid #5c2020; background: #2a0d0d; }
+  .combo-pip.on { background: radial-gradient(circle at 35% 30%, #ff7a5e, #c0392b); box-shadow: 0 0 5px #ff5533aa; border-color: #ffad99; }
+
+  /* ---------- buff bar ---------- */
+  #buff-bar { position: absolute; right: 196px; top: 14px; display: flex; flex-direction: row-reverse; flex-wrap: wrap; gap: 4px; max-width: 320px; pointer-events: auto; }
+  .buff { width: 28px; height: 28px; border: 1px solid #777; border-radius: 4px; font-size: 10px;
+    display: flex; align-items: center; justify-content: center; color: #fff; font-weight: bold;
+    position: relative; text-shadow: 1px 1px 1px #000; cursor: default;
+    background: radial-gradient(circle at 35% 30%, #2c4a6e, #16243a); }
+  .buff.debuff { background: radial-gradient(circle at 35% 30%, #6e2c2c, #3a1616); border-color: #c0392b; }
+  .buff .dur { position: absolute; bottom: -13px; left: 0; right: 0; text-align: center; font-size: 9px; color: #eee; text-shadow: 1px 1px 1px #000; }
+
+  /* ---------- cast bar ---------- */
+  #castbar { position: absolute; left: 50%; transform: translateX(-50%); bottom: 200px; width: 300px;
+    height: 24px; display: none; border: 2px solid var(--border); outline: 1px solid #000; border-radius: 4px; background: #100c08; overflow: hidden; }
+  #castbar .fill { height: 100%; width: 0%; background: linear-gradient(#ffe48a, #c9941a 60%, #9a6f12);
+    box-shadow: inset 0 1px 0 #fff5; }
+  #castbar.channel .fill { background: linear-gradient(#8ad4ff, #1a74c9 60%, #125a9a); }
+  #castbar .label { position: absolute; inset: 0; text-align: center; font-size: 12px; line-height: 21px;
+    color: #fff; text-shadow: 1px 1px 2px #000; font-family: var(--title-font); }
+
+  /* ---------- bottom cluster ---------- */
+  #bottom-bar { position: absolute; left: 50%; transform: translateX(-50%); bottom: 6px; text-align: center; }
+  #xpbar { width: 612px; height: 10px; background: #14101e; border: 1px solid #000; outline: 1px solid #3a3148;
+    margin: 0 auto 4px; position: relative; border-radius: 2px; overflow: hidden; }
+  #xpbar .fill { height: 100%; width: 0%; background: linear-gradient(#b85eff, #6a1bb0); }
+  #xpbar .ticks { position: absolute; inset: 0; display: flex; }
+  #xpbar .ticks i { flex: 1; border-right: 1px solid #00000055; }
+  #xpbar .label { position: absolute; inset: 0; font-size: 9px; color: #fff; text-align: center; line-height: 10px; text-shadow: 1px 1px 1px #000; opacity: 0; transition: opacity .15s; }
+  #xpbar:hover .label { opacity: 1; }
+  #actionbar-row { display: flex; align-items: flex-end; gap: 8px; }
+  #actionbar { display: flex; gap: 4px; padding: 6px; }
+  .action-btn { width: 46px; height: 46px; position: relative; border: 2px solid #4a3d1d; border-radius: 6px;
+    background: radial-gradient(circle at 35% 30%, #2c2c3a, #15151f); color: #fff; cursor: pointer;
+    font-weight: bold; font-size: 14px; font-family: var(--title-font);
+    display: flex; align-items: center; justify-content: center; text-shadow: 1px 1px 2px #000;
+    box-shadow: inset 0 1px 0 #ffffff18, 0 2px 4px #0009; }
+  .action-btn:hover { border-color: var(--gold); }
+  .action-btn:active { transform: translateY(1px); }
+  .action-btn.empty { background: #0d0d13; cursor: default; box-shadow: inset 0 0 10px #000; }
+  .action-btn .keybind { position: absolute; top: 1px; right: 3px; font-size: 9px; color: #ddd; font-family: var(--ui-font); }
+  .action-btn .cdtext { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 17px; color: var(--gold); text-shadow: 1px 1px 2px #000; }
+  .action-btn .cd-overlay { position: absolute; left: 0; right: 0; bottom: 0; background: #000d; height: 0%; border-radius: 0 0 4px 4px; }
+  .action-btn.unusable .icon-label { color: #d44 !important; }
+  .action-btn.oor .icon-label { color: #888 !important; }
+  .action-btn.queued { border-color: #fff; box-shadow: 0 0 9px #ffd100cc, inset 0 1px 0 #ffffff18; }
+  #side-buttons { display: flex; flex-direction: column; gap: 4px; padding-bottom: 6px; }
+  .micro-btn { width: 34px; height: 30px; border: 2px solid #4a3d1d; border-radius: 5px;
+    background: radial-gradient(circle at 35% 30%, #2c2c3a, #15151f); color: #d8c89a; cursor: pointer;
+    font-size: 12px; font-weight: bold; box-shadow: inset 0 1px 0 #ffffff18, 0 2px 4px #0009; position: relative; }
+  .micro-btn:hover { border-color: var(--gold); color: #fff; }
+  .micro-btn .keybind { position: absolute; bottom: -1px; right: 2px; font-size: 8px; color: #998; }
+
+  /* ---------- combat log ---------- */
+  #combatlog-wrap { position: absolute; left: 12px; bottom: 8px; width: 350px; }
+  #combatlog-header { font-family: var(--title-font); font-size: 12px; color: #cdb877;
+    background: linear-gradient(#2a2436, #161220); border: 1px solid #463a1c; border-bottom: none;
+    border-radius: 6px 6px 0 0; padding: 3px 10px; width: 130px; text-shadow: 1px 1px 1px #000; }
+  #combatlog { height: 148px; overflow: hidden; font-size: 11px; padding: 6px 9px; line-height: 1.45;
+    border-radius: 0 6px 6px 6px; display: flex; flex-direction: column; justify-content: flex-end; }
+  #combatlog div { text-shadow: 1px 1px 1px #000; }
+
+  /* ---------- quest tracker ---------- */
+  #quest-tracker { position: absolute; right: 14px; top: 210px; width: 240px; font-size: 12px;
+    color: var(--gold); text-shadow: 1px 1px 2px #000; pointer-events: none; }
+  #quest-tracker .qt-header { font-family: var(--title-font); font-size: 14px; border-bottom: 1px solid #ffd10044; margin-bottom: 4px; padding-bottom: 2px; }
+  #quest-tracker .qt-title { font-weight: bold; margin-top: 8px; font-family: var(--title-font); }
+  #quest-tracker .qt-obj { color: #e8e0c8; font-size: 11px; margin-left: 8px; }
+  #quest-tracker .qt-obj.done { color: #7fdc4f; }
+
+  /* ---------- minimap ---------- */
+  #minimap-wrap { position: absolute; right: 12px; top: 10px; width: 170px; text-align: center; }
+  #zone-label { font-size: 13px; color: var(--gold); font-family: var(--title-font); text-shadow: 1px 1px 3px #000; margin-bottom: 3px; letter-spacing: 0.5px; }
+  #minimap { border-radius: 50%; border: 4px solid var(--border); outline: 1px solid #000; box-shadow: 0 0 14px #000c, inset 0 0 20px #0008; }
+
+  /* ---------- windows ---------- */
+  .window { position: absolute; display: none; padding: 12px; z-index: 20; }
+  #quest-dialog { left: 50%; top: 14%; transform: translateX(-50%); width: 440px; max-height: 64%; overflow-y: auto; }
+  .qd-text { font-size: 12.5px; line-height: 1.55; color: #e8e0c8; margin-bottom: 10px; font-family: Georgia, serif; }
+  .qd-sub { font-family: var(--title-font); color: var(--gold); font-size: 13px; margin: 8px 0 4px; }
+  .qd-obj { font-size: 12px; color: #cfc6a8; margin: 2px 0; }
+  .qd-reward-row { display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+  .qd-list-item { padding: 5px 8px; cursor: pointer; border-radius: 4px; font-size: 13px; color: var(--gold); font-family: var(--title-font); }
+  .qd-list-item:hover { background: #ffffff14; }
+  .btn { background: linear-gradient(#8a3326, #5a1d12 55%, #471409); color: #ffd9a0; border: 1px solid #a86;
+    outline: 1px solid #000; border-radius: 4px; padding: 6px 16px; font-size: 12.5px; cursor: pointer;
+    margin-top: 10px; margin-right: 8px; font-family: var(--title-font); letter-spacing: 0.4px;
+    text-shadow: 1px 1px 1px #000; box-shadow: inset 0 1px 0 #ffffff2a, 0 2px 4px #0008; }
+  .btn:hover { filter: brightness(1.25); }
+  .btn:active { transform: translateY(1px); }
+  .btn:disabled { filter: grayscale(1) brightness(0.7); cursor: default; }
+
+  #loot-window { width: 230px; }
+  .loot-item { display: flex; align-items: center; gap: 8px; padding: 4px; font-size: 12px; cursor: default; border-radius: 4px; }
+  .loot-item:hover { background: #ffffff10; }
+
+  .item-icon { width: 28px; height: 28px; border-radius: 4px; flex: none;
+    display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;
+    font-family: var(--title-font); color: #fff; text-shadow: 1px 1px 1px #000;
+    background: radial-gradient(circle at 35% 30%, #3a3a4a, #1a1a24); border: 1px solid #888; }
+  .q-poor { border-color: #9d9d9d !important; color: #9d9d9d; }
+  .q-common { border-color: #ffffff !important; color: #fff; }
+  .q-uncommon { border-color: #1eff00 !important; color: #1eff00; }
+
+  /* character window */
+  #char-window { left: 16px; top: 90px; width: 320px; }
+  .paperdoll { display: flex; gap: 10px; }
+  .equip-col { display: flex; flex-direction: column; gap: 5px; }
+  .equip-slot { display: flex; gap: 7px; align-items: center; width: 142px; }
+  .equip-slot .slot-name { font-size: 10px; color: #998d6a; }
+  .equip-slot .slot-item { font-size: 11px; }
+  .char-stats { font-size: 12px; line-height: 1.65; color: #cfc6a8; margin-top: 10px; border-top: 1px solid #463a1c; padding-top: 8px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .char-stats b { color: #fff; font-weight: normal; }
+
+  /* spellbook */
+  #spellbook { left: 50%; top: 16%; transform: translateX(-50%); width: 430px; max-height: 64%; overflow-y: auto; }
+  .spell-row { display: flex; gap: 10px; padding: 6px; border-radius: 4px; align-items: center; }
+  .spell-row:hover { background: #ffffff0e; }
+  .spell-row .spell-name { font-size: 13px; color: #fff; font-family: var(--title-font); }
+  .spell-row .spell-sub { font-size: 11px; color: #998d6a; }
+  .spell-icon { width: 34px; height: 34px; border-radius: 5px; flex: none; display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 13px; font-family: var(--title-font); text-shadow: 1px 1px 1px #000;
+    background: radial-gradient(circle at 35% 30%, #2c2c3a, #15151f); border: 2px solid #4a3d1d; }
+
+  /* quest log */
+  #quest-log-window { left: 50%; top: 14%; transform: translateX(-50%); width: 520px; max-height: 66%; display: none; }
+  #quest-log-window .ql-cols { display: flex; gap: 12px; }
+  .ql-list { width: 180px; border-right: 1px solid #463a1c; padding-right: 8px; }
+  .ql-item { padding: 4px 6px; font-size: 12px; color: #d8c89a; cursor: pointer; border-radius: 3px; font-family: var(--title-font); }
+  .ql-item:hover, .ql-item.sel { background: #ffffff14; color: var(--gold); }
+  .ql-detail { flex: 1; font-size: 12px; max-height: 380px; overflow-y: auto; }
+
+  /* vendor */
+  #vendor-window { left: 50%; top: 16%; transform: translateX(-50%); width: 400px; }
+  .vendor-item { display: flex; gap: 8px; align-items: center; padding: 5px; border-radius: 4px; cursor: pointer; }
+  .vendor-item:hover { background: #ffffff10; }
+  .vendor-item .vi-name { font-size: 12px; flex: 1; }
+  .vendor-item .vi-price { font-size: 11px; color: #ddd; }
+  .vendor-hint { font-size: 10px; color: #887c5c; margin-top: 8px; }
+
+  /* bags */
+  #bags { right: 12px; bottom: 64px; width: 310px; max-height: 60%; overflow-y: auto; }
+  .bag-grid { display: flex; flex-direction: column; gap: 2px; }
+  .bag-item { display: flex; gap: 8px; align-items: center; font-size: 12px; padding: 3px 4px; border-radius: 3px; cursor: pointer; }
+  .bag-item:hover { background: #ffffff12; }
+  .bag-item .bi-count { margin-left: auto; color: #ccc; }
+  .money { margin-top: 8px; font-size: 12px; color: var(--gold); text-align: right; }
+  .coin { display: inline-block; width: 11px; height: 11px; border-radius: 50%; vertical-align: -1px; margin-left: 6px; margin-right: 2px; }
+  .coin.g { background: radial-gradient(circle at 35% 30%, #ffe98a, #b8860b); }
+  .coin.s { background: radial-gradient(circle at 35% 30%, #e8e8e8, #888); }
+  .coin.c { background: radial-gradient(circle at 35% 30%, #e8a87a, #8b4513); }
+
+  /* map */
+  #map-window { left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 14px; }
+  #map-canvas { border: 2px solid var(--border); outline: 1px solid #000; border-radius: 4px; }
+
+  /* tooltip */
+  #tooltip { position: absolute; display: none; z-index: 100; pointer-events: none; max-width: 280px;
+    padding: 8px 10px; font-size: 12px; line-height: 1.5; }
+  #tooltip .tt-title { font-family: var(--title-font); font-size: 13.5px; color: #fff; }
+  #tooltip .tt-sub { color: #998d6a; font-size: 11px; }
+  #tooltip .tt-desc { color: #ffd100; margin-top: 4px; font-size: 11.5px; }
+  #tooltip .tt-stat { color: #fff; font-size: 11.5px; }
+  #tooltip .tt-green { color: #1eff00; font-size: 11.5px; }
+
+  /* ---------- floating combat text ---------- */
+  .fct { position: absolute; font-weight: bold; pointer-events: none; text-shadow: 1px 1px 3px #000;
+    animation: fct-rise 1.1s ease-out forwards; font-size: 17px; transform: translate(-50%, -50%);
+    font-family: var(--title-font); z-index: 5; }
+  .fct.crit { font-size: 26px; animation: fct-crit 1.2s ease-out forwards; }
+  @keyframes fct-rise { from { opacity: 1; margin-top: 0; } to { opacity: 0; margin-top: -76px; } }
+  @keyframes fct-crit { 0% { opacity: 1; margin-top: 0; } 15% { transform: translate(-50%,-50%) scale(1.5); }
+    100% { opacity: 0; margin-top: -86px; transform: translate(-50%,-50%) scale(1); } }
+
+  /* ---------- center messages ---------- */
+  #error-msg { position: absolute; left: 50%; top: 21%; transform: translateX(-50%); color: #ff2020;
+    font-size: 18px; font-weight: bold; font-family: var(--title-font); text-shadow: 1px 1px 3px #000;
+    opacity: 0; transition: opacity .4s; pointer-events: none; }
+  #banner { position: absolute; left: 50%; top: 28%; transform: translateX(-50%); color: var(--gold);
+    font-size: 38px; font-weight: bold; text-shadow: 0 0 18px #00000088, 2px 2px 6px #000; opacity: 0;
+    transition: opacity 1.2s; pointer-events: none; font-family: var(--title-font); letter-spacing: 1px; white-space: nowrap; }
+
+  /* ---------- death overlay ---------- */
+  #death-overlay { position: absolute; inset: 0; background: radial-gradient(ellipse at center, #40000077 0%, #300000bb 100%);
+    display: none; align-items: center; justify-content: center; flex-direction: column; gap: 18px; z-index: 30; }
+  #death-overlay h1 { color: #ddd; font-size: 44px; text-shadow: 2px 2px 8px #000; font-family: var(--title-font); }
+
+  /* ---------- start screen ---------- */
+  #start-screen { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 30%, #2a3a55, #0a0d14 75%);
+    display: flex; align-items: center; justify-content: center; flex-direction: column; z-index: 100; }
+  #start-screen h1 { color: var(--gold); font-size: 52px; font-family: var(--title-font);
+    text-shadow: 0 0 28px #c9941a55, 2px 2px 5px #000; margin-bottom: 4px; letter-spacing: 2px; }
+  #start-screen .subtitle { color: #b9c4d8; font-size: 14px; margin-bottom: 26px; font-style: italic; font-family: Georgia, serif; }
+  #name-row { margin-bottom: 26px; }
+  #char-name { background: #0d0d14; color: #ffd100; border: 2px solid var(--border); outline: 1px solid #000;
+    border-radius: 4px; padding: 8px 14px; font-size: 15px; width: 240px; text-align: center;
+    font-family: var(--title-font); user-select: text; }
+  .class-row { display: grid; grid-template-columns: repeat(3, 196px); gap: 12px; }
+  .class-card { padding: 12px 12px 10px; text-align: center; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+  .class-card:hover { transform: scale(1.05); box-shadow: 0 0 22px #ffd10033, 0 2px 16px #000c; }
+  .class-card h2 { font-size: 17px; margin: 3px 0 4px; font-family: var(--title-font); }
+  .class-card .crest { font-size: 24px; }
+  .class-card p { font-size: 10px; color: #9aa4b8; margin: 0; line-height: 1.45; }
+  #controls-hint { margin-top: 34px; color: #6b7689; font-size: 11px; line-height: 1.8; text-align: center; }
+  #controls-hint b { color: #93a1b8; }
+
+  /* ---------- online auth / character select ---------- */
+  .mode-row { display: flex; gap: 24px; }
+  .mode-card { width: 280px; padding: 26px 22px; text-align: center; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+  .mode-card:hover { transform: scale(1.04); box-shadow: 0 0 22px #ffd10033, 0 2px 16px #000c; }
+  .mode-card h2 { font-family: var(--title-font); color: var(--gold); font-size: 22px; margin-bottom: 10px; }
+  .mode-card p { font-size: 11.5px; color: #9aa4b8; line-height: 1.55; }
+  .auth-panel { width: 360px; padding: 16px; }
+  .auth-panel input { display: block; width: 100%; margin-bottom: 10px; background: #0d0d14; color: #e8d8a8;
+    border: 2px solid var(--border); outline: 1px solid #000; border-radius: 4px; padding: 8px 12px;
+    font-size: 14px; font-family: var(--title-font); user-select: text; }
+  .auth-error { color: #ff6b5e; font-size: 12px; min-height: 16px; margin-bottom: 4px; }
+  .char-row { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-bottom: 1px solid #2a2316; }
+  .char-row .char-name { font-family: var(--title-font); color: #fff; font-size: 15px; min-width: 90px; }
+  .char-row .char-sub { color: #998d6a; font-size: 11px; flex: 1; }
+  .char-row .btn { margin: 0; padding: 4px 10px; font-size: 11px; }
+  .char-row.online .char-name { color: #7fdc4f; }
+  .char-create { margin-top: 14px; border-top: 1px solid #463a1c; padding-top: 10px; }
+  .mini-class-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px; }
+  .mini-class { text-align: center; padding: 7px 2px; border: 2px solid #4a3d1d; border-radius: 5px;
+    cursor: pointer; font-size: 11px; color: #d8c89a; background: #15151f; font-family: var(--title-font); }
+  .mini-class:hover { border-color: var(--gold-dim); }
+  .mini-class.sel { border-color: var(--gold); color: #fff; box-shadow: 0 0 8px #ffd10055; }
+
+  /* ---------- chat ---------- */
+  #chat-input { position: absolute; left: 12px; bottom: 168px; width: 350px; display: none; z-index: 25;
+    background: #0d0d14ee; color: #e8e8e8; border: 2px solid var(--border); outline: 1px solid #000;
+    border-radius: 4px; padding: 7px 10px; font-size: 13px; user-select: text; }
+
+  /* ---------- party frames ---------- */
+  #party-frames { position: absolute; left: 12px; top: 92px; display: flex; flex-direction: column; gap: 6px; }
+  .party-frame { width: 170px; padding: 4px 8px; cursor: pointer; }
+  .party-frame .pfm-name { font-size: 11.5px; font-family: var(--title-font); color: #7fb8ff; display: flex; justify-content: space-between; }
+  .party-frame .pfm-name .lead { color: var(--gold); font-size: 10px; }
+  .party-frame .bar { height: 9px; margin-top: 2px; }
+  .party-frame.dead .pfm-name { color: #888; }
+  .party-frame:hover { outline: 1px solid var(--gold-dim); }
+  #party-leave { font-size: 10px; padding: 2px 8px; margin: 0; }
+
+  /* ---------- context menu ---------- */
+  #ctx-menu { position: absolute; z-index: 90; padding: 6px; min-width: 150px; }
+  #ctx-menu .ctx-title { font-family: var(--title-font); color: var(--gold); font-size: 13px; padding: 3px 8px; border-bottom: 1px solid #463a1c; margin-bottom: 4px; }
+  #ctx-menu .ctx-item { padding: 5px 10px; font-size: 12.5px; color: #e8d8a8; cursor: pointer; border-radius: 4px; }
+  #ctx-menu .ctx-item:hover { background: #ffffff18; color: #fff; }
+
+  /* ---------- prompts (invite/trade/duel) ---------- */
+  #prompt-stack { position: absolute; left: 50%; top: 34%; transform: translateX(-50%); z-index: 80;
+    display: flex; flex-direction: column; gap: 10px; }
+  .prompt { padding: 14px 18px; text-align: center; min-width: 300px; }
+  .prompt .prompt-text { font-size: 13.5px; color: #e8e0c8; margin-bottom: 4px; font-family: Georgia, serif; }
+
+  /* ---------- trade window ---------- */
+  #trade-window { left: 50%; top: 18%; transform: translateX(-50%); width: 460px; }
+  .trade-cols { display: flex; gap: 12px; }
+  .trade-col { flex: 1; }
+  .trade-col h4 { font-family: var(--title-font); font-size: 12.5px; color: var(--gold); margin-bottom: 6px; }
+  .trade-col.accepted h4::after { content: ' ✓'; color: #1eff00; }
+  .trade-items { min-height: 120px; border: 1px solid #463a1c; border-radius: 4px; padding: 4px; background: #0c0c12; }
+  .trade-item { display: flex; gap: 6px; align-items: center; font-size: 11.5px; padding: 3px; border-radius: 3px; }
+  .trade-item.mine { cursor: pointer; }
+  .trade-item.mine:hover { background: #ffffff14; }
+  .trade-money { margin-top: 6px; font-size: 12px; }
+  .trade-money input { width: 80px; background: #0d0d14; color: #ffd100; border: 1px solid var(--border); border-radius: 3px; padding: 3px 6px; user-select: text; }
+  .trade-hint { font-size: 10.5px; color: #887c5c; margin-top: 8px; }
+
+  /* ---------- elite target frame ---------- */
+  #target-frame.elite .portrait { border-color: var(--gold); box-shadow: 0 0 12px #ffd10066, 0 2px 8px #000c; }
+  #tf-elite-tag { font-size: 9px; color: var(--gold); font-family: var(--title-font); letter-spacing: 1px; text-align: center; display: none; }
+  #target-frame.elite #tf-elite-tag { display: block; }
+</style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+  <div id="nameplates"></div>
+
+  <div id="ui">
+    <div id="player-frame" class="unitframe">
+      <div class="portrait-wrap">
+        <div class="portrait"><canvas id="pf-portrait" width="54" height="54"></canvas></div>
+        <div class="level-chip" id="pf-level">1</div>
+      </div>
+      <div class="uf-bars">
+        <div class="uf-name" id="pf-name">Adventurer</div>
+        <div class="bar hp"><div class="bar-fill" id="pf-hp"></div><div class="bar-text" id="pf-hp-text"></div></div>
+        <div class="bar mana" id="pf-resource"><div class="bar-fill" id="pf-res"></div><div class="bar-text" id="pf-res-text"></div></div>
+      </div>
+    </div>
+
+    <div id="target-frame" class="unitframe">
+      <div class="portrait-wrap">
+        <div class="portrait"><canvas id="tf-portrait" width="54" height="54"></canvas></div>
+        <div class="level-chip" id="tf-level"></div>
+        <div id="tf-elite-tag">ELITE</div>
+      </div>
+      <div class="uf-bars">
+        <div class="uf-name" id="tf-name"></div>
+        <div class="bar hp"><div class="bar-fill" id="tf-hp"></div><div class="bar-text" id="tf-hp-text"></div></div>
+        <div class="combo-row" id="combo-row"></div>
+        <div class="uf-buffs" id="tf-debuffs" style="display:flex;gap:3px;margin-top:3px;"></div>
+      </div>
+    </div>
+
+    <div id="party-frames"></div>
+
+    <div id="buff-bar"></div>
+
+    <div id="ctx-menu" class="panel" style="display:none"></div>
+    <div id="prompt-stack"></div>
+    <div id="trade-window" class="window panel"></div>
+
+    <div id="castbar"><div class="fill"></div><div class="label"></div></div>
+
+    <div id="minimap-wrap">
+      <div id="zone-label">Eastbrook Vale</div>
+      <canvas id="minimap" width="162" height="162"></canvas>
+    </div>
+
+    <div id="quest-tracker"></div>
+
+    <div id="bottom-bar">
+      <div id="xpbar"><div class="fill"></div><div class="ticks"></div><div class="label"></div></div>
+      <div id="actionbar-row">
+        <div id="actionbar" class="panel"></div>
+        <div id="side-buttons">
+          <button class="micro-btn" id="mm-char" title="Character Info">C<span class="keybind">c</span></button>
+          <button class="micro-btn" id="mm-spell" title="Spellbook">S<span class="keybind">p</span></button>
+          <button class="micro-btn" id="mm-quest" title="Quest Log">Q<span class="keybind">l</span></button>
+          <button class="micro-btn" id="mm-map" title="World Map">M<span class="keybind">m</span></button>
+          <button class="micro-btn" id="mm-bag" title="Bags">B<span class="keybind">b</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="combatlog-wrap">
+      <div id="combatlog-header">Combat Log</div>
+      <div id="combatlog" class="panel"></div>
+    </div>
+
+    <div id="quest-dialog" class="window panel"></div>
+    <div id="loot-window" class="window panel"></div>
+    <div id="bags" class="window panel"></div>
+    <div id="char-window" class="window panel"></div>
+    <div id="spellbook" class="window panel"></div>
+    <div id="quest-log-window" class="window panel"></div>
+    <div id="vendor-window" class="window panel"></div>
+    <div id="map-window" class="window panel"><canvas id="map-canvas" width="560" height="560"></canvas></div>
+    <div id="tooltip" class="panel"></div>
+
+    <div id="error-msg"></div>
+    <div id="banner"></div>
+
+    <div id="death-overlay">
+      <h1>You have died.</h1>
+      <button class="btn" id="release-btn">Release Spirit</button>
+    </div>
+  </div>
+
+  <input id="chat-input" maxlength="200" placeholder="Say something… (Enter to send, Esc to cancel)" autocomplete="off" />
+
+  <div id="start-screen">
+    <h1>Eastbrook Vale</h1>
+    <div class="subtitle">a vanilla-flavored micro-MMO &mdash; and a training ground for machines</div>
+
+    <div id="mode-select">
+      <div class="mode-row">
+        <div class="mode-card panel" id="btn-online">
+          <h2>Play Online</h2>
+          <p>Log in to the realm. Your characters live on the server and you share the vale with everyone else who's on.</p>
+        </div>
+        <div class="mode-card panel" id="btn-offline">
+          <h2>Play Offline</h2>
+          <p>Instant single-player world in your browser. Nothing is saved — perfect for a quick brawl or testing.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="login-panel" class="panel auth-panel" style="display:none">
+      <div class="panel-title"><span>Account</span></div>
+      <input id="login-user" maxlength="24" placeholder="Username" autocomplete="username" />
+      <input id="login-pass" type="password" maxlength="128" placeholder="Password" autocomplete="current-password" />
+      <div id="login-error" class="auth-error"></div>
+      <div>
+        <button class="btn" id="btn-login">Log In</button>
+        <button class="btn" id="btn-register">Create Account</button>
+        <button class="btn" id="btn-login-back">Back</button>
+      </div>
+    </div>
+
+    <div id="charselect-panel" class="panel auth-panel" style="display:none">
+      <div class="panel-title"><span>Characters — <span id="charselect-user" class="gold"></span></span></div>
+      <div id="char-list"></div>
+      <div class="char-create">
+        <div class="qd-sub">Create a character</div>
+        <input id="new-char-name" maxlength="16" placeholder="Name" />
+        <div class="mini-class-row">
+          <div class="mini-class" data-class="warrior">⚔️ Warrior</div>
+          <div class="mini-class" data-class="paladin">🔨 Paladin</div>
+          <div class="mini-class" data-class="hunter">🏹 Hunter</div>
+          <div class="mini-class" data-class="rogue">🗡️ Rogue</div>
+          <div class="mini-class" data-class="priest">✝️ Priest</div>
+          <div class="mini-class" data-class="shaman">🌩️ Shaman</div>
+          <div class="mini-class" data-class="mage">🔮 Mage</div>
+          <div class="mini-class" data-class="warlock">🕯️ Warlock</div>
+          <div class="mini-class" data-class="druid">🐻 Druid</div>
+        </div>
+        <div id="charselect-error" class="auth-error"></div>
+        <button class="btn" id="btn-create-char">Create</button>
+        <button class="btn" id="btn-charselect-back">Back</button>
+      </div>
+    </div>
+
+    <div id="offline-select" style="display:none">
+      <div id="name-row"><input id="char-name" maxlength="16" placeholder="Character name" value="" /></div>
+      <div class="class-row">
+        <div class="class-card panel" data-class="warrior"><div class="crest">⚔️</div><h2 style="color:#c79c6e">Warrior</h2><p>Rage, Heroic Strike, Charge, Overpower.</p></div>
+        <div class="class-card panel" data-class="paladin"><div class="crest">🔨</div><h2 style="color:#f58cba">Paladin</h2><p>Seals, Judgement, Holy Light, plate-clad.</p></div>
+        <div class="class-card panel" data-class="hunter"><div class="crest">🏹</div><h2 style="color:#abd473">Hunter</h2><p>Auto Shot at range, stings and traps... of a sort.</p></div>
+        <div class="class-card panel" data-class="rogue"><div class="crest">🗡️</div><h2 style="color:#fff569">Rogue</h2><p>Energy, combo points, Backstab, Eviscerate.</p></div>
+        <div class="class-card panel" data-class="priest"><div class="crest">✝️</div><h2 style="color:#ffffff">Priest</h2><p>Heals, shields, Renew — and Shadow Word: Pain.</p></div>
+        <div class="class-card panel" data-class="shaman"><div class="crest">🌩️</div><h2 style="color:#5f9bef">Shaman</h2><p>Lightning, shocks, weapon imbues, heals.</p></div>
+        <div class="class-card panel" data-class="mage"><div class="crest">🔮</div><h2 style="color:#69ccf0">Mage</h2><p>Fireball, Frostbolt, Polymorph, conjured water.</p></div>
+        <div class="class-card panel" data-class="warlock"><div class="crest">🕯️</div><h2 style="color:#9482c9">Warlock</h2><p>Dots, curses, Life Tap, Drain Life.</p></div>
+        <div class="class-card panel" data-class="druid"><div class="crest">🐻</div><h2 style="color:#ff7d0a">Druid</h2><p>Wrath, HoTs, roots — and Bear Form at 10.</p></div>
+      </div>
+    </div>
+
+    <div id="controls-hint">
+      <b>WASD</b> move &middot; <b>A/D</b> turn, <b>Q/E</b> strafe &middot; <b>right-drag</b> mouselook &middot; <b>left-drag</b> orbit camera &middot; wheel zoom &middot; <b>Space</b> jump<br/>
+      <b>Tab</b> target &middot; <b>1-9,0</b> abilities &middot; <b>F</b> interact/loot &middot; <b>C</b> character &middot; <b>P</b> spellbook &middot; <b>L</b> quest log &middot; <b>M</b> map &middot; <b>B</b> bags &middot; <b>V</b> nameplates &middot; <b>R</b> autorun &middot; <b>Enter</b> chat
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
