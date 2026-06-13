@@ -8,6 +8,7 @@ export interface GameSettings {
   musicVolume: number;  // 0..1
   brightness: number;   // tone-mapping exposure multiplier
   renderScale: number;  // resolution multiplier on top of the device pixel ratio
+  uiScale: number;      // HUD/menu zoom multiplier (1 = native size)
 }
 
 interface Range { min: number; max: number; def: number }
@@ -21,6 +22,7 @@ export const SETTING_RANGES: Record<keyof GameSettings, Range> = {
   musicVolume: { min: 0, max: 1, def: 0.8 },
   brightness: { min: 0.6, max: 1.5, def: 1 },
   renderScale: { min: 0.5, max: 1, def: 1 },
+  uiScale: { min: 0.75, max: 1.5, def: 1 },
 };
 
 const STORE_KEY = 'woc_settings';
