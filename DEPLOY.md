@@ -136,7 +136,7 @@ server health) is served by the same game server process:
 - **Standalone/Caddy**: set `ADMIN_DOMAIN` in `deploy/user-data.sh`
   (or add the extra site block to `/etc/caddy/Caddyfile` by hand).
 - **Local dev**: open `http://localhost:8787/admin` (or `/admin` under
-  `npm run dev`).
+  `pnpm run dev`).
 
 Access requires signing in with a game account that has the `is_admin`
 flag. The hostname only selects which HTML shell is served — every
@@ -146,12 +146,12 @@ Grant the first admin:
 
 ```bash
 # locally
-npm run admin:grant -- <username>
+pnpm run admin:grant -- <username>
 
 # on the box (the runtime image only ships bundled code, so use psql)
 sudo docker exec eastbrook-db psql -U eastbrook eastbrook \
   -c "UPDATE accounts SET is_admin = TRUE WHERE username = '<username>';"
 ```
 
-Revoke with `npm run admin:grant -- <username> --revoke` (or set the
+Revoke with `pnpm run admin:grant -- <username> --revoke` (or set the
 flag to `FALSE` in SQL).

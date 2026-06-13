@@ -4,7 +4,7 @@ The heavy lifting happens in a Node subprocess running the deterministic
 TypeScript simulation (the same code the playable browser build uses).
 Communication is newline-delimited JSON over stdin/stdout.
 
-Build the server bundle once:   npm run build:env
+Build the server bundle once:   pnpm run build:env
 Then:
 
     from wow_env import WoWClassicEnv
@@ -70,7 +70,7 @@ class WoWClassicEnv(gym.Env):
         server = os.path.abspath(server_path or _DEFAULT_SERVER)
         if not os.path.exists(server):
             raise FileNotFoundError(
-                f"env server bundle not found at {server}. Run `npm run build:env` first."
+                f"env server bundle not found at {server}. Run `pnpm run build:env` first."
             )
         self._proc = subprocess.Popen(
             [node_binary, server],

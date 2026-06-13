@@ -2,7 +2,7 @@
 
 Target: three@0.165 (confirmed; GTAOPass/SSAOPass/SMAAPass/UnrealBloomPass/OutputPass/FXAAShader/VignetteShader all present in `node_modules/three/examples/jsm/`), fully procedural, 60fps on a decent laptop, `?lowgfx` stays playable. Current renderer is a single forward pass, Lambert everywhere, vertex-colored 440-seg terrain, Phong water, canvas sky dome.
 
-Plan is ordered as 11 safe, independently screenshot-verifiable steps. Verify each with `npm run dev` → offline play → screenshot (existing headless-Chrome E2E scripts work; note prior deflaking for timing races).
+Plan is ordered as 11 safe, independently screenshot-verifiable steps. Verify each with `pnpm run dev` → offline play → screenshot (existing headless-Chrome E2E scripts work; note prior deflaking for timing races).
 
 ---
 

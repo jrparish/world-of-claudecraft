@@ -31,7 +31,7 @@ All CC0 except three.js water normals (MIT). Attribution in `CREDITS.md` (courte
 | ambientCG: Grass001, Ground048 (dirt), Rock051 (cliff), Ground071 (swamp mud), Ground080 (sand), PavingStones046 (cobble), Snow010A | terrain splat PBR (1K) | `https://ambientcg.com/get?file={ID}_1K-JPG.zip` |
 | three.js r165 `waternormals.jpg`, `water/Water_1_M_Normal.jpg`, `Water_2_M_Normal.jpg` | water | raw.githubusercontent pinned to r165 tag (MIT) |
 | Kenney Particle Pack | spell/fire/smoke/impact sprites (cherry-pick ~20) | direct zip |
-| npm: `@gltf-transform/cli@4.4.0` (MIT), `n8ao@1.10.1` (ISC) | pipeline + SSAO | npm i; meshopt decoder bundled in three (`three/addons/libs/meshopt_decoder.module.js`) |
+| npm registry: `@gltf-transform/cli@4.4.0` (MIT), `n8ao@1.10.1` (ISC) | pipeline + SSAO | pnpm i; meshopt decoder bundled in three (`three/addons/libs/meshopt_decoder.module.js`) |
 
 Rejected: Mixamo (Adobe), Sketchfab (login wall), postprocessing@6.39+ (needs three≥0.168;
 we stay on the stock composer + N8AOPass instead), Draco (meshopt better for animation-heavy
@@ -131,7 +131,7 @@ SwiftShader settle, `window.__game.sim.player` wait.
 
 ## Verification commands
 
-`npm test` · `npm run dev` then `GFX_TIER=ultra node scripts/tour_expansion.mjs` ·
+`pnpm test` · `pnpm run dev` then `GFX_TIER=ultra node scripts/tour_expansion.mjs` ·
 `node tmp/gfx_probe.mjs <label> ultra` · single shot: `node tmp/gfx_one.mjs town 2 -2 0.5 ultra`.
 Known flake: mp_combat_visibility.mjs (SwiftShader timing). crypt_raid.mjs needs
 `PORT=8788 ALLOW_DEV_COMMANDS=1 node dist-server/server.cjs`.

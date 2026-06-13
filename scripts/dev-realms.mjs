@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Run several realms locally so you can exercise the WoW-style realm picker.
 //
-//   npm run realms            # build the server, then launch the realms below
+//   pnpm run realms           # build the server, then launch the realms below
 //
 // Each realm is a separate process (process-per-realm) sharing the one local
 // database from .env. They all advertise the same REALMS directory, so the
@@ -19,7 +19,7 @@ const REALMS = [
 
 const SERVER = 'dist-server/server.cjs';
 if (!existsSync(SERVER)) {
-  console.error(`Missing ${SERVER}. Run \`npm run build:server\` first (or use \`npm run realms\`).`);
+  console.error(`Missing ${SERVER}. Run \`pnpm run build:server\` first (or use \`pnpm run realms\`).`);
   process.exit(1);
 }
 

@@ -1,0 +1,7 @@
+# pnpm settings (pnpm 11 moved these out of package.json's "pnpm" field).
+# Native deps whose install/build scripts are allowed to run — pnpm blocks all
+# others by default. esbuild builds the server/env bundles; sharp powers image
+# processing in @gltf-transform/cli during the media build.
+allowBuilds:
+  esbuild: true
+  sharp: true

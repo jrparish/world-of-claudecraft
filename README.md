@@ -51,12 +51,12 @@ by the test bots).
 ## Develop online (hot reload)
 
 ```bash
-npm install
+pnpm install
 cp .env.example .env
 # edit .env and set POSTGRES_PASSWORD and DATABASE_URL to the same password
-npm run db:up        # postgres 16 in docker (port 5433, volume-persisted)
-npm run server       # authoritative game server on :8787 (REST + WebSocket)
-npm run dev          # client dev server on :5173 (proxies /api and /ws)
+pnpm run db:up        # postgres 16 in docker (port 5433, volume-persisted)
+pnpm run server       # authoritative game server on :8787 (REST + WebSocket)
+pnpm run dev          # client dev server on :5173 (proxies /api and /ws)
 ```
 
 Open http://localhost:5173 → **Play Online** → create an account → create a
@@ -128,7 +128,7 @@ locked out of the story.
 ## Play offline
 
 ```bash
-npm run dev        # open http://localhost:5173 -> Play Offline
+pnpm run dev        # open http://localhost:5173 -> Play Offline
 ```
 
 Name your character, pick any of the nine classes, and you're in **Eastbrook
@@ -225,10 +225,10 @@ Stormstrike, and Starfire)**
 ## Development
 
 ```bash
-npm test                        # vitest suite: formulas, combat, AI, quests, all 9 classes,
+pnpm test                       # vitest suite: formulas, combat, AI, quests, all 9 classes,
                                 #   parties, duels, trades, elites, the crypt
-npm run build                   # production web build
-node scripts/smoke_browser.mjs  # warrior E2E (needs `npm run dev` running)
+pnpm run build                  # production web build
+node scripts/smoke_browser.mjs  # warrior E2E (needs `pnpm run dev` running)
 node scripts/smoke_mage.mjs     # mage: casting, polymorph, conjure+drink, death/release
 node scripts/smoke_rogue.mjs    # rogue: combo points, eviscerate, vendor, eating
 node scripts/visual_tour.mjs    # screenshot tour of the zone + UI into tmp/

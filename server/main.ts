@@ -87,7 +87,7 @@ function serveStatic(req: http.IncomingMessage, res: http.ServerResponse): void 
       fs.createReadStream(index).pipe(res);
     } else {
       res.writeHead(404);
-      res.end('not found (run `npm run build` to serve the client from the game server)');
+      res.end('not found (run `pnpm run build` to serve the client from the game server)');
     }
     return;
   }
